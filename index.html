@@ -1,8 +1,234 @@
 <div id="help">
-    To move use WSAD - to go back in time use U.
-    <br />
-    Pressing U to go back in time, become creative and survive longer using time remnants misleading the enemies.
+  To move use WSAD - to go back in time use U.
+  <br />
+  Pressing U to go back in time, become creative and survive longer using time
+  remnants misleading the enemies.
 </div>
 <div id="tickCounter"></div>
 <canvas id="app"></canvas>
-<script src="src/index.js"></script>
+<script>
+  const canvas = document.getElementById("app");
+  const tickCounterNode = document.getElementById("tickCounter");
+
+  canvas.style.zoom = "10";
+  canvas.style.imageRendering = "pixelated";
+
+  const size = 50;
+  const cellSize = 1;
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillRect(0, 0, size, size);
+
+  let state = {
+    tick: 0,
+    players: [[{ x: 0, y: 0 }]],
+    enemies: []
+  };
+
+  const maxPos = size - cellSize;
+  const minPos = 0;
+  const spawnPoints = [
+    { x: minPos, y: minPos },
+    { x: minPos, y: maxPos },
+    { x: maxPos, y: minPos },
+    { x: maxPos, y: maxPos }
+  ];
+  const spawnInterval = 5;
+  const lastSpawnTick = 0;
+  const getSpawnPoint = ((i = 0) => () => {
+    i = (i + 1) % spawnPoints.length;
+    return spawnPoints[i];
+  })();
+
+  const update = () => {
+    tickCounterNode.textContent =
+      "You survived " + state.tick + " ticks so far.";
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, size, size);
+
+    const [, ...players] = state.players;
+    players.forEach(player => {
+      if (player[state.tick] === undefined) {
+        return;
+      }
+      const { x, y } = player[state.tick];
+      ctx.fillStyle = "gray";
+      ctx.fillRect(x, y, cellSize, cellSize);
+    });
+
+    const enemies = state.enemies;
+    enemies.forEach(enemy => {
+      if (enemy[state.tick] === undefined) {
+        //console.log(enemy, state.tick);
+        return;
+      }
+      const { x, y } = enemy[state.tick];
+      ctx.fillStyle = "red";
+      ctx.fillRect(x, y, cellSize, cellSize);
+    });
+
+    ctx.fillStyle = "green";
+    const player = state.players[0];
+    if (player[state.tick] === undefined) {
+      return;
+    }
+    let { x, y } = player[state.tick];
+    ctx.fillRect(x, y, cellSize, cellSize);
+  };
+
+  document.body.addEventListener("keyup", event => {
+    if (event.code === "KeyU" && state.tick > 0) {
+      state.tick = state.tick - 1;
+      // console.log(state);
+      update();
+      return;
+    }
+
+    if (state.tick < state.players[0].length - 1) {
+      state.players = [
+        //[...new Array(state.tick), state.players[0][state.tick]],
+        state.players[0].slice(0, state.tick + 1),
+        ...state.players
+      ];
+    }
+
+    const tick = state.tick + 1;
+
+    if (state.players[0][state.tick] === undefined) {
+      return;
+    }
+
+    const d = { x: 0, y: 0 };
+    switch (event.code) {
+      case "KeyD":
+        d.x = 1;
+        break;
+      case "KeyS":
+        d.y = 1;
+        break;
+      case "KeyA":
+        d.x = -1;
+        break;
+      case "KeyW":
+        d.y = -1;
+        break;
+    }
+
+    const { x, y } = state.players[0][state.tick];
+    state.players[0][tick] = {
+      x: Math.min(Math.max(minPos, x + d.x), maxPos),
+      y: Math.min(Math.max(minPos, y + d.y), maxPos)
+    };
+
+    state.enemies.forEach(enemy => {
+      // console.log(enemy, state.tick);
+      if (!enemy[state.tick]) {
+        return;
+      }
+      const currentPos = enemy[state.tick];
+      const playerPositions = state.players
+        .map(player => player[tick])
+        .filter(Boolean)
+        .map(pos => ({
+          ...pos,
+          distance:
+            Math.abs(currentPos.x - pos.x) + Math.abs(currentPos.y - pos.y)
+        }));
+      if (playerPositions.length === 0) {
+        return;
+      }
+      const playerPos = playerPositions.reduce((max, next) =>
+        max.distance < next.distance ? next : max
+      );
+
+      const dx = currentPos.x - playerPos.x;
+      const dy = currentPos.y - playerPos.y;
+
+      const d =
+        Math.abs(dx) === Math.abs(dy)
+          ? {
+              x: 0,
+              y: 0,
+              [["x", "y"][Math.floor(Math.random() * 2)]]: -Math.sign(dx)
+            }
+          : Math.abs(dx) < Math.abs(dy)
+          ? {
+              x: 0,
+              y: -Math.sign(dy)
+            }
+          : {
+              x: -Math.sign(dx),
+              y: 0
+            };
+      const posCandidate = {
+        x: currentPos.x + d.x,
+        y: currentPos.y + d.y
+      };
+      // Check if posCandidate is occupied
+      if (
+        state.enemies.some(e => {
+          if (
+            e[tick] &&
+            e[tick].x === posCandidate.x &&
+            e[tick].y === posCandidate.y
+          ) {
+            return true;
+          }
+          if (
+            e[state.tick] &&
+            e[state.tick].x === posCandidate.x &&
+            e[state.tick].y === posCandidate.y
+          ) {
+            return true;
+          }
+          return false;
+        })
+      ) {
+        enemy[tick] = currentPos;
+      } else {
+        enemy[tick] = posCandidate;
+      }
+    });
+
+    if (lastSpawnTick < state.tick && state.tick % spawnInterval === 0) {
+      // spawn enemy
+      //console.log("spawn...", state.enemies);
+      state.enemies = [
+        [...new Array(state.tick + 1), getSpawnPoint()],
+        ...state.enemies
+      ];
+      //console.log("spawned...", state.enemies);
+    }
+    const p = state.players[0][tick];
+    if (
+      state.enemies.some(enemy => {
+        const e = enemy[tick];
+        if (e === undefined) {
+          return false;
+        }
+        if (p.x === e.x && p.y === e.y) {
+          return true;
+        }
+        return false;
+      })
+    ) {
+      state.players[0][tick] = undefined;
+      setTimeout(
+        () =>
+          alert(
+            "Game Over - you survived " +
+              tick +
+              ' ticks - try pressing "u" to go back in time and fix it'
+          ),
+        0
+      );
+    }
+
+    state.tick = tick;
+    update();
+  });
+  update();
+</script>
