@@ -16,3 +16,6 @@ Just survive longer ;)
 ## Hints
 
 Enemies are spawned every 5 ticks from board corners.
+
+## Credits
+Big thanks for the inspiration https://smitop.com/square-game/
