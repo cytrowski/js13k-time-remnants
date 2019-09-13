@@ -1,5 +1,7 @@
 # Time remnants
 
+![](./400x250-time-remnants.png)
+
 A game about going back in time and fixing the timeline. Very minimalistic ;)
 
 ## Controls
