@@ -61,6 +61,9 @@ const update = () => {
 
   ctx.fillStyle = "green";
   const player = state.players[0];
+  if (player[state.tick] === undefined) {
+    return;
+  }
   let { x, y } = player[state.tick];
   ctx.fillRect(x, y, cellSize, cellSize);
 };
@@ -82,6 +85,10 @@ document.body.addEventListener("keyup", event => {
   }
 
   const tick = state.tick + 1;
+
+  if (state.players[0][state.tick] === undefined) {
+    return;
+  }
 
   const d = { x: 0, y: 0 };
   switch (event.code) {
@@ -112,14 +119,19 @@ document.body.addEventListener("keyup", event => {
     const dy = currentPos.y - playerPos.y;
 
     const d =
-      Math.abs(dx) >= Math.abs(dy)
+      Math.abs(dx) === Math.abs(dy)
         ? {
-            x: -Math.sign(dx),
-            y: 0
+            x: 0,
+            y: 0,
+            [['x', 'y'][Math.floor(Math.random() * 2)]]: -Math.sign(dx)
           }
-        : {
+        : Math.abs(dx) < Math.abs(dy)
+          ? {
             x: 0,
             y: -Math.sign(dy)
+          } : {
+            x: -Math.sign(dx),
+            y: 0
           };
     const posCandidate = {
       x: currentPos.x + d.x,
@@ -159,6 +171,20 @@ document.body.addEventListener("keyup", event => {
       ...state.enemies
     ];
     //console.log("spawned...", state.enemies);
+  }
+  const p = state.players[0][tick]
+  if (state.enemies.some(enemy => {
+    const e = enemy[tick];
+    if (e === undefined) {
+      return false
+    }
+    if (p.x === e.x && p.y === e.y) {
+      return true
+    }
+    return false
+  })) {
+    state.players[0][tick] = undefined;
+    setTimeout(() => alert('Game Over - try pressing "u" key'), 0);
   }
 
   state.tick = tick;
