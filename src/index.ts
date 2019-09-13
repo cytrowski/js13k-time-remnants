@@ -108,13 +108,24 @@ document.body.addEventListener("keyup", event => {
 
   const { x, y } = state.players[0][state.tick];
   state.players[0][tick] = { x: x + d.x, y: y + d.y };
-  const playerPos = state.players[0][tick];
+  
   state.enemies.forEach(enemy => {
+    
+
     // console.log(enemy, state.tick);
     if (!enemy[state.tick]) {
       return;
     }
     const currentPos = enemy[state.tick];
+    const playerPositions = state.players.map(player => player[tick]).filter(Boolean).map(pos => ({
+      ...pos,
+      distance: Math.abs(currentPos.x - pos.x) + Math.abs(currentPos.y - pos.y)
+    }))
+    if (playerPositions.length === 0) {
+      return;
+    }
+    const playerPos = playerPositions.reduce((max, next) => max.distance < next.distance ? next : max);
+
     const dx = currentPos.x - playerPos.x;
     const dy = currentPos.y - playerPos.y;
 
@@ -184,7 +195,7 @@ document.body.addEventListener("keyup", event => {
     return false
   })) {
     state.players[0][tick] = undefined;
-    setTimeout(() => alert('Game Over - try pressing "u" key'), 0);
+    setTimeout(() => alert('Game Over - you survived ' + tick + ' ticks - try pressing "u" to go back in time and fix it'), 0);
   }
 
   state.tick = tick;
