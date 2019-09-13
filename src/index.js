@@ -1,7 +1,7 @@
-const canvas = document.getElementById("app") as HTMLCanvasElement;
+const canvas = document.getElementById("app");
+const tickCounterNode = document.getElementById("tickCounter");
 
 canvas.style.zoom = "10";
-// @ts-ignore
 canvas.style.imageRendering = "pixelated";
 
 const size = 50;
@@ -35,6 +35,7 @@ const getSpawnPoint = ((i = 0) => () => {
 })();
 
 const update = () => {
+  tickCounterNode.textContent = "You survived " + state.tick + " ticks so far.";
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, size, size);
 
@@ -107,24 +108,31 @@ document.body.addEventListener("keyup", event => {
   }
 
   const { x, y } = state.players[0][state.tick];
-  state.players[0][tick] = { x: x + d.x, y: y + d.y };
-  
-  state.enemies.forEach(enemy => {
-    
+  state.players[0][tick] = {
+    x: Math.min(Math.max(minPos, x + d.x), maxPos),
+    y: Math.min(Math.max(minPos, y + d.y), maxPos)
+  };
 
+  state.enemies.forEach(enemy => {
     // console.log(enemy, state.tick);
     if (!enemy[state.tick]) {
       return;
     }
     const currentPos = enemy[state.tick];
-    const playerPositions = state.players.map(player => player[tick]).filter(Boolean).map(pos => ({
-      ...pos,
-      distance: Math.abs(currentPos.x - pos.x) + Math.abs(currentPos.y - pos.y)
-    }))
+    const playerPositions = state.players
+      .map(player => player[tick])
+      .filter(Boolean)
+      .map(pos => ({
+        ...pos,
+        distance:
+          Math.abs(currentPos.x - pos.x) + Math.abs(currentPos.y - pos.y)
+      }));
     if (playerPositions.length === 0) {
       return;
     }
-    const playerPos = playerPositions.reduce((max, next) => max.distance < next.distance ? next : max);
+    const playerPos = playerPositions.reduce((max, next) =>
+      max.distance < next.distance ? next : max
+    );
 
     const dx = currentPos.x - playerPos.x;
     const dy = currentPos.y - playerPos.y;
@@ -134,13 +142,14 @@ document.body.addEventListener("keyup", event => {
         ? {
             x: 0,
             y: 0,
-            [['x', 'y'][Math.floor(Math.random() * 2)]]: -Math.sign(dx)
+            [["x", "y"][Math.floor(Math.random() * 2)]]: -Math.sign(dx)
           }
         : Math.abs(dx) < Math.abs(dy)
-          ? {
+        ? {
             x: 0,
             y: -Math.sign(dy)
-          } : {
+          }
+        : {
             x: -Math.sign(dx),
             y: 0
           };
@@ -183,19 +192,29 @@ document.body.addEventListener("keyup", event => {
     ];
     //console.log("spawned...", state.enemies);
   }
-  const p = state.players[0][tick]
-  if (state.enemies.some(enemy => {
-    const e = enemy[tick];
-    if (e === undefined) {
-      return false
-    }
-    if (p.x === e.x && p.y === e.y) {
-      return true
-    }
-    return false
-  })) {
+  const p = state.players[0][tick];
+  if (
+    state.enemies.some(enemy => {
+      const e = enemy[tick];
+      if (e === undefined) {
+        return false;
+      }
+      if (p.x === e.x && p.y === e.y) {
+        return true;
+      }
+      return false;
+    })
+  ) {
     state.players[0][tick] = undefined;
-    setTimeout(() => alert('Game Over - you survived ' + tick + ' ticks - try pressing "u" to go back in time and fix it'), 0);
+    setTimeout(
+      () =>
+        alert(
+          "Game Over - you survived " +
+            tick +
+            ' ticks - try pressing "u" to go back in time and fix it'
+        ),
+      0
+    );
   }
 
   state.tick = tick;
